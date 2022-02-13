@@ -6,7 +6,7 @@ import trio
 from env.robot_infra import RobotInfra
 
 
-class SyncStepEnv(gym.Env):
+class AsyncStepEnv(gym.Env):
     def __init__(self, infra: RobotInfra, delta_time: float):
         self._infra = infra
         self._delta_time = delta_time

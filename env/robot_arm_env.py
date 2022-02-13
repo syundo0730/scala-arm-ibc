@@ -6,12 +6,12 @@ from gym import spaces
 import numpy as np
 
 from env.robot_infra import RobotArmInfra
-from env.sync_step_env import SyncStepEnv
+from env.async_step_env import AsyncStepEnv
 
 _TOW_PI = 2 * pi
 
 
-class RobotArmEnv(SyncStepEnv):
+class RobotArmEnv(AsyncStepEnv):
     _DEFAULT_RESET_POSITION = np.array((0.2, 0))
 
     def __init__(self, infra: RobotArmInfra, delta_time: float, image_size: Optional[Tuple[float, float]],

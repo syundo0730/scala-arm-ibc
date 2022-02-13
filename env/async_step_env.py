@@ -7,8 +7,7 @@ from env.robot_infra import RobotInfra
 
 
 class AsyncStepEnv(gym.Env):
-    def __init__(self, infra: RobotInfra, delta_time: float):
-        self._infra = infra
+    def __init__(self, delta_time: float):
         self._delta_time = delta_time
 
         self._done = False
@@ -41,15 +40,15 @@ class AsyncStepEnv(gym.Env):
         # reward, done
         return 0, False
 
-    async def async_step(self, action) -> None:
-        await self._infra.command_action(action)
+    async def async_step(self, infra: RobotInfra, action) -> None:
+        await infra.command_action(action)
         await self._sleep_for_observation()
-        self._last_observation = await self._infra.get_observation()
+        self._last_observation = await infra.get_observation()
         self._last_observed_time = trio.current_time()
         self._last_reward, self._done = self._calc_reward_and_done(self._last_observation, action)
         self._is_observation_fresh = True
 
-    async def async_reset(self) -> None:
-        self._last_observation = await self._infra.get_observation()
+    async def async_reset(self, infra: RobotInfra) -> None:
+        self._last_observation = await infra.get_observation()
         self._last_observed_time = trio.current_time()
         self._is_observation_fresh = True

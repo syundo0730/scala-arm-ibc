@@ -25,7 +25,3 @@ class RobotArmInfra(RobotInfra):
     @abstractmethod
     async def move_end_effector_to(self, xy: np.ndarray, joint_speed: Optional[float] = None):
         raise NotImplementedError
-
-    @abstractmethod
-    async def reset(self):
-        pass

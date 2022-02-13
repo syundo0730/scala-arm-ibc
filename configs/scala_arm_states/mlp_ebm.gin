@@ -13,6 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+train_eval_with_real_robot.env_name='ScalaArm-v0'
+train_eval_with_real_robot.observations=('joint_angles', 'end_effector_pos')
+train_eval_with_real_robot.image_size=None
+train_eval_with_real_robot.sequence_length=2
+
 train_eval_simple.root_dir = '/tmp/scala_arm_ibc_logs/mlp_ebm'
 train_eval_simple.dataset_path='data/scala_arm_states/scala_arm_states*.tfrecord'
 train_eval_simple.loss_type_name = 'ebm' # specifies we are training ebm.
@@ -23,7 +28,6 @@ train_eval_simple.replay_capacity = 10000
 # train_eval_simple.eval_interval = 5000
 # train_eval_simple.eval_episodes = 20
 train_eval_simple.learning_rate = 1e-3
-train_eval_simple.sequence_length = 2
 train_eval_simple.dataset_eval_fraction = 0.0
 
 # Config for sampling actions.

@@ -13,7 +13,7 @@ from trio_serial import SerialStream, AbstractSerialStream
 from camera.video_capture import open_video_capture
 from core.serial_client import SerialClient
 from env.arm_kinematics_2d import forward
-from env.robot_arm_real_infra import RobotArmRealInfra
+from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
 from futaba.commands import Commands as FutabaCommands
 
 # _IMAGE_SIZE = (320, 240)  # width, height
@@ -67,34 +67,29 @@ class OracleRecorder:
     async def record(cls, dataset_path: str):
         last_trajectory = None
         async with SerialStream('/dev/tty.usbserial-1110', baudrate=115200) as ttl_serial, \
-                SerialStream('/dev/tty.usbserial-0001', baudrate=115200) as rs485_serial:
-            with open_video_capture(0) as cap:
-                try:
-                    robot_infra = RobotArmRealInfra(rs485_serial, cap, IMAGE_SIZE)
-                    controller_infra = _HumanControllerInfra(robot_infra, ttl_serial)
-                    current_xy = (await controller_infra.read_current_xy_and_angles())[0]
-                    env = suite_gym.load('ScalaArm-v0', gym_kwargs={
-                        'infra': robot_infra,
-                        'delta_time': cls.DELTA_TIME,
-                        'image_size': IMAGE_SIZE,
-                        'reset_position': current_xy,
-                    })
-                    observer = cls._generate_tf_observer(env, dataset_path)
+                open_arm_control('/dev/tty.usbserial-0001') as robot_infra:
+            try:
+                controller_infra = _HumanControllerInfra(robot_infra, ttl_serial)
+                current_xy = (await controller_infra.read_current_xy_and_angles())[0]
+                env = suite_gym.load('ScalaArm-v0', gym_kwargs={
+                    'delta_time': cls.DELTA_TIME,
+                    'image_size': IMAGE_SIZE,
+                    'reset_position': current_xy,
+                })
+                observer = cls._generate_tf_observer(env, dataset_path)
 
-                    print('resetting !!!')
-                    await env.async_reset()
-                    time_step = env.reset()
-                    print('reset end !!! start recording !!!')
-                    while True:
-                        action_step, _ = await controller_infra.compute_action()
-                        await env.async_step(action_step.action)
-                        next_time_step = env.step(None)
+                print('resetting !!!')
+                await env.async_reset(robot_infra)
+                time_step = env.reset()
+                print('reset end !!! start recording !!!')
+                while True:
+                    action_step, _ = await controller_infra.compute_action()
+                    await env.async_step(robot_infra, action_step.action)
+                    next_time_step = env.step(None)
 
-                        last_trajectory = trajectory.from_transition(time_step, action_step, next_time_step)
-                        observer(last_trajectory)
-                        time_step = next_time_step
-                finally:
-                    if last_trajectory is not None:
-                        observer(last_trajectory.replace(step_type=StepType.LAST))
-                    with trio.CancelScope(shield=True):
-                        await robot_infra.shutdown()
+                    last_trajectory = trajectory.from_transition(time_step, action_step, next_time_step)
+                    observer(last_trajectory)
+                    time_step = next_time_step
+            finally:
+                if last_trajectory is not None:
+                    observer(last_trajectory.replace(step_type=StepType.LAST))

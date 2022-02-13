@@ -1,12 +1,14 @@
 import math
+from contextlib import nullcontext, asynccontextmanager
 from math import degrees, radians
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple, Optional, Set
 
 import cv2
 import numpy as np
 import trio
-from trio_serial import AbstractSerialStream
+from trio_serial import AbstractSerialStream, SerialStream
 
+from camera.video_capture import open_video_capture
 from core.serial_client import SerialClient
 from env.arm_kinematics_2d import inverse, forward
 from env.robot_infra import RobotArmInfra
@@ -19,9 +21,10 @@ class RobotArmRealInfra(RobotArmInfra):
     _COLLIDABLE_DISTANCE_TO_BASE = 0.1
 
     def __init__(self, serial_stream: AbstractSerialStream, video_stream: cv2.VideoCapture,
-                 image_size: Optional[Tuple[float, float]]):
+                 observations: Optional[Set], image_size: Optional[Tuple[float, float]]):
         self._serial_client = SerialClient(serial_stream)
         self._video_stream = video_stream
+        self._observations = observations
         self._image_size = image_size
 
         self._last_target_position = np.zeros(2)
@@ -30,12 +33,12 @@ class RobotArmRealInfra(RobotArmInfra):
     def target_position(self) -> np.ndarray:
         return self._last_target_position
 
-    async def reset(self):
+    async def _reset_pid_params(self):
         # write pid control params
         for id_ in self._MOTOR_IDS:
             await self._serial_client.command(Commands.write_control_param_ram(id_, 10, 100, 200, 30))
 
-    async def shutdown(self):
+    async def _shutdown(self):
         for id_ in self._MOTOR_IDS:
             await self._serial_client.command(Commands.shutdown(id_))
             print(f'ID: {id_} shutdown')
@@ -66,11 +69,12 @@ class RobotArmRealInfra(RobotArmInfra):
     async def get_observation(self) -> Dict:
         joint_angles = await self._read_joint_angles()
         end_effector_point = forward(*joint_angles)
-        obs = {
-            'joint_angles': joint_angles,
-            'end_effector_pos': end_effector_point,
-        }
-        if self._image_size is not None:
+        obs = {}
+        if self._observations is None or 'joint_angles' in self._observations:
+            obs['joint_angles'] = joint_angles
+        if self._observations is None or 'end_effector_pos' in self._observations:
+            obs['end_effector_pos'] = end_effector_point
+        if (self._observations is None or 'rgb' in self._observations) and self._image_size is not None:
             success, frame = self._video_stream.read()
             if not success:
                 raise RuntimeError('video stream not available')
@@ -78,3 +82,16 @@ class RobotArmRealInfra(RobotArmInfra):
             assert resized.shape[2] == 3, 'image should be 3 channel'
             obs['rgb'] = resized
         return obs
+
+
+@asynccontextmanager
+async def open_arm_control(serial_port_name: str, observations, image_size):
+    async with SerialStream(serial_port_name, baudrate=115200) as rs485_serial:
+        with (open_video_capture(0) if image_size else nullcontext) as cap:
+            infra = RobotArmRealInfra(rs485_serial, cap, observations, image_size)
+            await infra._reset()
+            try:
+                yield infra
+            finally:
+                with trio.CancelScope(shield=True):
+                    await infra._shutdown()

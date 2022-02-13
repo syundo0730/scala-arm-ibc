@@ -18,7 +18,7 @@ from trio_serial import SerialStream
 from camera.video_capture import open_video_capture
 from controller.oracle_recorder import OracleRecorder, IMAGE_SIZE
 from env.robot_arm_env import RobotArmEnv
-from env.robot_arm_real_infra import RobotArmRealInfra
+from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
 from ibc.ibc.train.get_agent import get_agent
 from ibc.ibc.train.get_cloning_network import get_cloning_network
 from ibc.ibc.train.get_data import get_data_fns
@@ -150,33 +150,35 @@ def train_eval_simple(
                 validation_data_iter, bc_learner, train_step, get_eval_loss)
 
 
+@gin.configurable
 async def train_eval_with_real_robot(
-        env_name,
+        serial_port_name: str,
         strategy,
+        env_name='',
+        observations=None,
+        image_size=None,
         sequence_length=2,
-        serial_port_name='/dev/tty.usbserial-1110',
         **kwargs
 ):
     register(
         id='ScalaArm-v0',
         entry_point=RobotArmEnv,
     )
-    async with SerialStream(serial_port_name, baudrate=115200) as rs485_serial:
-        with open_video_capture(0) as cap:
-            robot_infra = RobotArmRealInfra(rs485_serial, cap, IMAGE_SIZE)
-            env = suite_gym.load(env_name, gym_kwargs={
-                'infra': robot_infra,
-                'delta_time': OracleRecorder.DELTA_TIME,
-                'image_size': IMAGE_SIZE,
-            })
-            env = HistoryWrapper(env, history_length=sequence_length, tile_first_step_obs=True)
-            train_eval_simple(env, strategy, sequence_length=sequence_length, **kwargs)
+    env = suite_gym.load(env_name, gym_kwargs={
+        'delta_time': OracleRecorder.DELTA_TIME,
+        'observations': observations,
+        'image_size': IMAGE_SIZE,
+    })
+    env = HistoryWrapper(env, history_length=sequence_length, tile_first_step_obs=True)
+    train_eval_simple(env, strategy, sequence_length=sequence_length, **kwargs)
+    async with open_arm_control(serial_port_name, observations, image_size) as robot_infra:
+        pass
 
 
 FLAGS = flags.FLAGS
-flags.DEFINE_enum(
-    'env_name', None, ['ScalaArm-v0'],
-    'name of gym environment')
+flags.DEFINE_string(
+    'serial_port', '',
+    'name of serial port e.g.: /dev/tty.usbserial-001')
 
 
 def main(_):
@@ -186,7 +188,12 @@ def main(_):
     tf.config.run_functions_eagerly(False)
 
     strategy = get_strategy(tpu=FLAGS.tpu, use_gpu=FLAGS.use_gpu)
-    trio.run(partial(train_eval_with_real_robot, FLAGS.env_name, add_time_to_log=FLAGS.add_time, strategy=strategy))
+    trio.run(partial(
+        train_eval_with_real_robot,
+        serial_port_name=FLAGS.serial_port,
+        strategy=strategy,
+        add_time_to_log=FLAGS.add_time,
+    ))
 
 
 if __name__ == '__main__':

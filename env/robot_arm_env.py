@@ -5,6 +5,7 @@ import trio
 from gym import spaces
 import numpy as np
 
+from camera.image import ImageShape
 from env.robot_infra import RobotArmInfra
 from env.async_step_env import AsyncStepEnv
 
@@ -16,15 +17,15 @@ class RobotArmEnv(AsyncStepEnv):
 
     def __init__(self, delta_time: float,
                  observations: Optional[Set],
-                 image_size: Optional[Tuple[float, float]],
+                 image_shape: Optional[ImageShape],
                  reset_position: Optional[np.ndarray] = None):
         super().__init__(delta_time)
-        self.observation_space = self._create_observation_space(observations, image_size)
+        self.observation_space = self._create_observation_space(observations, image_shape)
         self._reset_position = reset_position if reset_position is not None else self._DEFAULT_RESET_POSITION
         self.action_space = spaces.Box(low=-0.1, high=0.1, shape=(2,))  # dx, dy
 
     @staticmethod
-    def _create_observation_space(observations: Set, image_size: Optional[Tuple[float, float]]) -> spaces.Dict:
+    def _create_observation_space(observations: Set, image_shape: Optional[ImageShape]) -> spaces.Dict:
         obs_scape_dict = {}
         if observations is None or 'joint_angles' in observations:
             obs_scape_dict['joint_angles'] = spaces.Box(
@@ -34,10 +35,10 @@ class RobotArmEnv(AsyncStepEnv):
             obs_scape_dict['end_effector_pos'] = spaces.Box(
                 low=-.3, high=.3, shape=(2,)
             )
-        if (observations is None or 'rgb' in observations) and image_size is not None:
+        if (observations is None or 'rgb' in observations) and image_shape is not None:
             obs_scape_dict['rgb'] = spaces.Box(
                 low=0, high=255,
-                shape=(*image_size, 3),
+                shape=image_shape.np_array_shape,
                 dtype=np.uint8)
         return spaces.Dict(obs_scape_dict)
 

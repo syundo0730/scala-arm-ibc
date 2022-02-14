@@ -4,20 +4,18 @@ from typing import List, Tuple
 
 import numpy as np
 import tensorflow as tf
-import trio
 from tf_agents.environments import suite_gym, PyEnvironment
 from tf_agents.trajectories import PolicyStep, trajectory, StepType
 from tf_agents.utils import example_encoding_dataset
 from trio_serial import SerialStream, AbstractSerialStream
 
-from camera.video_capture import open_video_capture
 from core.serial_client import SerialClient
 from env.arm_kinematics_2d import forward
 from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
 from futaba.commands import Commands as FutabaCommands
 
-# _IMAGE_SIZE = (320, 240)  # width, height
-IMAGE_SIZE = None
+# _IMAGE_SHAPE = (320, 240, 3)  # width, height
+IMAGE_SHAPE = None
 
 
 class _HumanControllerInfra:
@@ -73,7 +71,7 @@ class OracleRecorder:
                 current_xy = (await controller_infra.read_current_xy_and_angles())[0]
                 env = suite_gym.load('ScalaArm-v0', gym_kwargs={
                     'delta_time': cls.DELTA_TIME,
-                    'image_size': IMAGE_SIZE,
+                    'image_shape': IMAGE_SHAPE,
                     'reset_position': current_xy,
                 })
                 observer = cls._generate_tf_observer(env, dataset_path)

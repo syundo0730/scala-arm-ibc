@@ -15,7 +15,7 @@
 
 train_eval_with_real_robot.env_name='ScalaArm-v0'
 train_eval_with_real_robot.observations=('joint_angles', 'end_effector_pos')
-train_eval_with_real_robot.image_size=None
+train_eval_with_real_robot.image_shape=None
 train_eval_with_real_robot.sequence_length=2
 
 train_eval_simple.root_dir = '/tmp/scala_arm_ibc_logs/mlp_ebm'

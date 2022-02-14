@@ -1,13 +1,14 @@
 import math
 from contextlib import nullcontext, asynccontextmanager
 from math import degrees, radians
-from typing import List, Dict, Tuple, Optional, Set
+from typing import List, Dict, Optional, Set
 
 import cv2
 import numpy as np
 import trio
 from trio_serial import AbstractSerialStream, SerialStream
 
+from camera.image import ImageShape
 from camera.video_capture import open_video_capture
 from core.serial_client import SerialClient
 from env.arm_kinematics_2d import inverse, forward
@@ -21,11 +22,11 @@ class RobotArmRealInfra(RobotArmInfra):
     _COLLIDABLE_DISTANCE_TO_BASE = 0.1
 
     def __init__(self, serial_stream: AbstractSerialStream, video_stream: cv2.VideoCapture,
-                 observations: Optional[Set], image_size: Optional[Tuple[float, float]]):
+                 observations: Optional[Set], image_shape: Optional[ImageShape]):
         self._serial_client = SerialClient(serial_stream)
         self._video_stream = video_stream
         self._observations = observations
-        self._image_size = image_size
+        self._image_shape = image_shape
 
         self._last_target_position = np.zeros(2)
 
@@ -74,21 +75,21 @@ class RobotArmRealInfra(RobotArmInfra):
             obs['joint_angles'] = joint_angles
         if self._observations is None or 'end_effector_pos' in self._observations:
             obs['end_effector_pos'] = end_effector_point
-        if (self._observations is None or 'rgb' in self._observations) and self._image_size is not None:
+        if (self._observations is None or 'rgb' in self._observations) and self._image_shape is not None:
             success, frame = self._video_stream.read()
             if not success:
                 raise RuntimeError('video stream not available')
-            resized = cv2.resize(frame, dsize=self._image_size, interpolation=cv2.INTER_CUBIC)
+            resized = cv2.resize(frame, dsize=self._image_shape.wh, interpolation=cv2.INTER_CUBIC)
             assert resized.shape[2] == 3, 'image should be 3 channel'
             obs['rgb'] = resized
         return obs
 
 
 @asynccontextmanager
-async def open_arm_control(serial_port_name: str, observations, image_size):
+async def open_arm_control(serial_port_name: str, observations, image_shape: Optional[ImageShape]):
     async with SerialStream(serial_port_name, baudrate=115200) as rs485_serial:
-        with (open_video_capture(0) if image_size else nullcontext) as cap:
-            infra = RobotArmRealInfra(rs485_serial, cap, observations, image_size)
+        with (open_video_capture(0) if image_shape else nullcontext) as cap:
+            infra = RobotArmRealInfra(rs485_serial, cap, observations, image_shape)
             await infra._reset()
             try:
                 yield infra

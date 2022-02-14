@@ -1,6 +1,7 @@
 import datetime
 import os
 from functools import partial
+from typing import Optional, Tuple
 
 import trio
 from absl import app
@@ -13,12 +14,11 @@ from tf_agents.environments import PyEnvironment, suite_gym, HistoryWrapper
 from tf_agents.train.utils.spec_utils import get_tensor_specs
 from tf_agents.train.utils.strategy_utils import get_strategy
 from tf_agents.train.utils.train_utils import create_train_step
-from trio_serial import SerialStream
 
-from camera.video_capture import open_video_capture
-from controller.oracle_recorder import OracleRecorder, IMAGE_SIZE
+from camera.image import ImageShape
+from controller.oracle_recorder import OracleRecorder
 from env.robot_arm_env import RobotArmEnv
-from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
+from env.robot_arm_real_infra import open_arm_control
 from ibc.ibc.train.get_agent import get_agent
 from ibc.ibc.train.get_cloning_network import get_cloning_network
 from ibc.ibc.train.get_data import get_data_fns
@@ -156,10 +156,13 @@ async def train_eval_with_real_robot(
         strategy,
         env_name='',
         observations=None,
-        image_size=None,
+        image_shape: Optional[Tuple[float, float]] = None,  # w, h, channel
         sequence_length=2,
         **kwargs
 ):
+    if image_shape:
+        image_shape = ImageShape(*image_shape)
+
     register(
         id='ScalaArm-v0',
         entry_point=RobotArmEnv,
@@ -167,11 +170,11 @@ async def train_eval_with_real_robot(
     env = suite_gym.load(env_name, gym_kwargs={
         'delta_time': OracleRecorder.DELTA_TIME,
         'observations': observations,
-        'image_size': IMAGE_SIZE,
+        'image_shape': image_shape,
     })
     env = HistoryWrapper(env, history_length=sequence_length, tile_first_step_obs=True)
     train_eval_simple(env, strategy, sequence_length=sequence_length, **kwargs)
-    async with open_arm_control(serial_port_name, observations, image_size) as robot_infra:
+    async with open_arm_control(serial_port_name, observations, image_shape) as robot_infra:
         pass
 
 

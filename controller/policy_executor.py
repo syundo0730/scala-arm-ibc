@@ -1,11 +1,9 @@
 import trio
 from tf_agents.environments import suite_gym, HistoryWrapper
 from tf_agents.policies import SavedModelPyTFEagerPolicy
-from trio_serial import SerialStream
 
-from camera.video_capture import open_video_capture
-from controller.oracle_recorder import OracleRecorder, IMAGE_SIZE
-from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
+from controller.oracle_recorder import OracleRecorder, IMAGE_SHAPE
+from env.robot_arm_real_infra import open_arm_control
 
 
 class PolicyExecutor:
@@ -20,7 +18,7 @@ class PolicyExecutor:
     async def run(self):
         env = suite_gym.load('ScalaArm-v0', gym_kwargs={
             'delta_time': OracleRecorder.DELTA_TIME,
-            'image_size': IMAGE_SIZE,
+            'image_shape': IMAGE_SHAPE,
         })
         env = HistoryWrapper(
             env, history_length=self._HISTORY_LENGTH, tile_first_step_obs=True)

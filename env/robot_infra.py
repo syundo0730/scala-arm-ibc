@@ -5,17 +5,21 @@ from typing import Dict, Optional
 
 class RobotInfra:
     @abstractmethod
-    async def command_action(self, action) -> None:
+    def action_no_wait(self, action) -> None:
         raise NotImplementedError
 
     @abstractmethod
     async def get_observation(self) -> Dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_observation_no_wait(self) -> Dict:
         raise NotImplementedError
 
 
 class RobotArmInfra(RobotInfra):
     @abstractmethod
-    async def command_action(self, xy_diff: np.ndarray) -> None:
+    def action_now_wait(self, xy_diff: np.ndarray) -> None:
         raise NotImplementedError
 
     @abstractmethod
@@ -23,5 +27,13 @@ class RobotArmInfra(RobotInfra):
         raise NotImplementedError
 
     @abstractmethod
-    async def move_end_effector_to(self, xy: np.ndarray, joint_speed: Optional[float] = None):
+    def get_observation_no_wait(self) -> Dict:
+        raise NotImplementedError
+
+    @abstractmethod
+    def action_absolute_no_wait(self, xy: np.ndarray) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def run(self):
         raise NotImplementedError

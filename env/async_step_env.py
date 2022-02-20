@@ -41,9 +41,9 @@ class AsyncStepEnv(gym.Env):
         return 0, False
 
     async def async_step(self, infra: RobotInfra, action) -> None:
-        await infra.command_action(action)
+        infra.action_no_wait(action)
         await self._sleep_for_observation()
-        self._last_observation = await infra.get_observation()
+        self._last_observation = infra.get_observation_no_wait()
         self._last_observed_time = trio.current_time()
         self._last_reward, self._done = self._calc_reward_and_done(self._last_observation, action)
         self._is_observation_fresh = True

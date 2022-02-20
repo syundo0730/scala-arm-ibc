@@ -1,5 +1,5 @@
 from math import pi, radians
-from typing import Optional, Tuple, Set
+from typing import Optional, Sequence
 
 import trio
 from gym import spaces
@@ -16,8 +16,8 @@ class RobotArmEnv(AsyncStepEnv):
     _DEFAULT_RESET_POSITION = np.array((0.2, 0))
 
     def __init__(self, delta_time: float,
-                 observations: Optional[Set],
-                 image_shape: Optional[ImageShape],
+                 observations: Optional[Sequence] = None,
+                 image_shape: Optional[ImageShape] = None,
                  reset_position: Optional[np.ndarray] = None):
         super().__init__(delta_time)
         self.observation_space = self._create_observation_space(observations, image_shape)
@@ -25,7 +25,7 @@ class RobotArmEnv(AsyncStepEnv):
         self.action_space = spaces.Box(low=-0.1, high=0.1, shape=(2,))  # dx, dy
 
     @staticmethod
-    def _create_observation_space(observations: Set, image_shape: Optional[ImageShape]) -> spaces.Dict:
+    def _create_observation_space(observations: Optional[Sequence], image_shape: Optional[ImageShape]) -> spaces.Dict:
         obs_scape_dict = {}
         if observations is None or 'joint_angles' in observations:
             obs_scape_dict['joint_angles'] = spaces.Box(
@@ -43,6 +43,6 @@ class RobotArmEnv(AsyncStepEnv):
         return spaces.Dict(obs_scape_dict)
 
     async def async_reset(self, infra: RobotArmInfra) -> None:
-        await infra.move_end_effector_to(self._reset_position, joint_speed=radians(60))
+        infra.action_absolute_no_wait(self._reset_position)
         await trio.sleep(3)
         await super().async_reset(infra)

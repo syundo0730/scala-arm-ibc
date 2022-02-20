@@ -23,7 +23,10 @@ class PolicyExecutor:
         env = HistoryWrapper(
             env, history_length=self._HISTORY_LENGTH, tile_first_step_obs=True)
 
-        async with open_arm_control('/dev/ttyUSB0') as robot_infra:
+        async with open_arm_control(
+                '/dev/ttyUSB0', observations=['end_effector_pos'],
+                target_update_delta_time=OracleRecorder.DELTA_TIME,
+                command_delta_time=OracleRecorder.COMMAND_DELTA_TIME) as robot_infra:
             await env.async_reset(robot_infra)
             time_step = env.reset()
             while True:

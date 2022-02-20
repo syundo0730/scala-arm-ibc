@@ -34,12 +34,14 @@ class _HumanControllerInfra:
 
     async def compute_action(self) -> Tuple[PolicyStep, List[float]]:
         input_xy, angles = await self.read_current_xy_and_angles()
-        xy_diff = input_xy - self._robot_infra.target_position
+        robot_target_pos = self._robot_infra.target_position
+        xy_diff = input_xy - robot_target_pos if robot_target_pos is not None else np.zeros(2)
         return PolicyStep(action=np.asarray(xy_diff, dtype=np.float32)), angles
 
 
 class OracleRecorder:
-    DELTA_TIME = 0.02
+    DELTA_TIME = 0.1
+    COMMAND_DELTA_TIME = 0.01
 
     @staticmethod
     def _generate_next_record_file_name(dataset_path: str):
@@ -64,14 +66,15 @@ class OracleRecorder:
     @classmethod
     async def record(cls, dataset_path: str):
         last_trajectory = None
-        async with SerialStream('/dev/tty.usbserial-1110', baudrate=115200) as ttl_serial, \
-                open_arm_control('/dev/tty.usbserial-0001') as robot_infra:
+        async with SerialStream('/dev/tty.usbserial-11310', baudrate=115200) as ttl_serial, \
+                open_arm_control('/dev/tty.usbserial-0001',
+                                 target_update_delta_time=cls.DELTA_TIME,
+                                 command_delta_time=cls.COMMAND_DELTA_TIME) as robot_infra:
             try:
                 controller_infra = _HumanControllerInfra(robot_infra, ttl_serial)
                 current_xy = (await controller_infra.read_current_xy_and_angles())[0]
                 env = suite_gym.load('ScalaArm-v0', gym_kwargs={
                     'delta_time': cls.DELTA_TIME,
-                    'image_shape': IMAGE_SHAPE,
                     'reset_position': current_xy,
                 })
                 observer = cls._generate_tf_observer(env, dataset_path)

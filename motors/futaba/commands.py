@@ -1,7 +1,7 @@
 from functools import reduce
 
-from core.command import Command
-from futaba.response import PositionResponse
+from motors.core.command import Command
+from motors.futaba.response import PositionResponse
 
 _COMMON_HEADER = bytes([0xFA, 0xAF])
 

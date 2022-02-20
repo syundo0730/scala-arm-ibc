@@ -7,8 +7,8 @@ from trio_util import periodic
 
 from controller.policy_executor import PolicyExecutor
 from env.robot_arm_env import RobotArmEnv
-from gyems.rmd_r485.commands import Commands as RmdCommands
-from futaba.commands import Commands as FutabaCommands
+from motors.gyems.rmd_r485 import Commands as RmdCommands
+from motors.futaba.commands import Commands as FutabaCommands
 from controller.oracle_recorder import OracleRecorder
 
 
@@ -119,7 +119,7 @@ async def _write_control_params(serial: AbstractSerialStream, *args):
         print('control param written', res)
 
 
-async def main():
+async def main_policy():
     executor = PolicyExecutor(
         saved_model_path='/tmp/ibc_logs/mlp_ebm/ibc_dfo/20220213-034118/policies/greedy_policy',
         checkpoint_path='/tmp/ibc_logs/mlp_ebm/ibc_dfo/20220213-034118/policies/checkpoints/policy_checkpoint_0000020000',
@@ -127,9 +127,9 @@ async def main():
     await executor.run()
 
 
-async def main_record():
+async def main():
     recorder = OracleRecorder()
-    await recorder.record('data/arm_state*.tfrecord')
+    await recorder.record('data/arm_state_test*.tfrecord')
 
 
 async def main_master_slave():

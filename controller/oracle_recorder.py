@@ -9,10 +9,10 @@ from tf_agents.trajectories import PolicyStep, trajectory, StepType
 from tf_agents.utils import example_encoding_dataset
 from trio_serial import SerialStream, AbstractSerialStream
 
-from core.serial_client import SerialClient
+from motors.core.serial_client import SerialClient
 from env.arm_kinematics_2d import forward
 from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
-from futaba.commands import Commands as FutabaCommands
+from motors.futaba.commands import Commands as FutabaCommands
 
 # _IMAGE_SHAPE = (320, 240, 3)  # width, height
 IMAGE_SHAPE = None

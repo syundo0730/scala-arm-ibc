@@ -1,7 +1,7 @@
 from typing import Optional
 
-from core.command import Command
-from gyems.rmd_r485.response import PositionResponse, ControlParamResponse
+from motors.core.command import Command
+from motors.gyems.rmd_r485.response import PositionResponse, ControlParamResponse
 
 _COMMON_HEADER = 0x3E
 

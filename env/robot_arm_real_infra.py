@@ -11,10 +11,10 @@ from trio_util import move_on_when, periodic, RepeatedEvent
 
 from camera.image import ImageShape
 from camera.video_capture import open_video_capture
-from core.serial_client import SerialClient
+from motors.core.serial_client import SerialClient
 from env.arm_kinematics_2d import inverse, forward
 from env.robot_infra import RobotArmInfra
-from gyems.rmd_r485.commands import Commands
+from motors.gyems.rmd_r485.commands import Commands
 
 
 class RobotArmRealInfra(RobotArmInfra):

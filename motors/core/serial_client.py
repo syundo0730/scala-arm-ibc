@@ -1,6 +1,6 @@
 from trio_serial import AbstractSerialStream
 
-from core.command import Command
+from motors.core.command import Command
 
 
 class SerialClient:

@@ -1,0 +1,5 @@
+collect_oracle.env_name='ScalaArm-v0'
+collect_oracle.target_update_delta_time=0.1
+collect_oracle.command_delta_time=0.01
+collect_oracle.observations=('joint_angles', 'end_effector_pos')
+collect_oracle.image_shape=None

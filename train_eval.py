@@ -158,6 +158,7 @@ async def train_eval_with_real_robot(
         observations=None,
         image_shape: Optional[Tuple[float, float]] = None,  # w, h, channel
         sequence_length=2,
+        target_update_delta_time=0.1,
         **kwargs
 ):
     if image_shape:
@@ -168,14 +169,14 @@ async def train_eval_with_real_robot(
         entry_point=RobotArmEnv,
     )
     env = suite_gym.load(env_name, gym_kwargs={
-        'delta_time': OracleRecorder.DELTA_TIME,
+        'delta_time': target_update_delta_time,
         'observations': observations,
         'image_shape': image_shape,
     })
     env = HistoryWrapper(env, history_length=sequence_length, tile_first_step_obs=True)
     train_eval_simple(env, strategy, sequence_length=sequence_length, **kwargs)
-    async with open_arm_control(serial_port_name, observations, image_shape) as robot_infra:
-        pass
+    # async with open_arm_control(serial_port_name, observations, image_shape) as robot_infra:
+    #     pass
 
 
 FLAGS = flags.FLAGS

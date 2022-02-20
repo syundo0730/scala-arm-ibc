@@ -1,6 +1,6 @@
 import os
 from math import radians
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Sequence
 
 import numpy as np
 import tensorflow as tf
@@ -9,6 +9,7 @@ from tf_agents.trajectories import PolicyStep, trajectory, StepType
 from tf_agents.utils import example_encoding_dataset
 from trio_serial import SerialStream, AbstractSerialStream
 
+from camera.image import ImageShape
 from motors.core.serial_client import SerialClient
 from env.arm_kinematics_2d import forward
 from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
@@ -40,8 +41,7 @@ class _HumanControllerInfra:
 
 
 class OracleRecorder:
-    DELTA_TIME = 0.1
-    COMMAND_DELTA_TIME = 0.01
+    """record oracle by using manual controller system"""
 
     @staticmethod
     def _generate_next_record_file_name(dataset_path: str):
@@ -64,17 +64,28 @@ class OracleRecorder:
             compress_image=True)
 
     @classmethod
-    async def record(cls, dataset_path: str):
+    async def record(
+            cls,
+            env_name: str,
+            dataset_path: str,
+            target_update_delta_time: float,
+            command_delta_time: float,
+            observations: Optional[Sequence] = None,
+            image_shape: Optional[ImageShape] = None,
+            serial_port_name: str = '',
+            controller_serial_port_name: str = ''
+    ):
         last_trajectory = None
-        async with SerialStream('/dev/tty.usbserial-11310', baudrate=115200) as ttl_serial, \
-                open_arm_control('/dev/tty.usbserial-0001',
-                                 target_update_delta_time=cls.DELTA_TIME,
-                                 command_delta_time=cls.COMMAND_DELTA_TIME) as robot_infra:
+        async with SerialStream(controller_serial_port_name, baudrate=115200) as ttl_serial, \
+                open_arm_control(serial_port_name, target_update_delta_time, command_delta_time, observations,
+                                 image_shape) as robot_infra:
             try:
                 controller_infra = _HumanControllerInfra(robot_infra, ttl_serial)
                 current_xy = (await controller_infra.read_current_xy_and_angles())[0]
-                env = suite_gym.load('ScalaArm-v0', gym_kwargs={
-                    'delta_time': cls.DELTA_TIME,
+                env = suite_gym.load(env_name, gym_kwargs={
+                    'delta_time': target_update_delta_time,
+                    'observations': observations,
+                    'image_shape': image_shape,
                     'reset_position': current_xy,
                 })
                 observer = cls._generate_tf_observer(env, dataset_path)

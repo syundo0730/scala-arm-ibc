@@ -119,19 +119,6 @@ async def _write_control_params(serial: AbstractSerialStream, *args):
         print('control param written', res)
 
 
-async def main_policy():
-    executor = PolicyExecutor(
-        saved_model_path='/tmp/ibc_logs/mlp_ebm/ibc_dfo/20220213-034118/policies/greedy_policy',
-        checkpoint_path='/tmp/ibc_logs/mlp_ebm/ibc_dfo/20220213-034118/policies/checkpoints/policy_checkpoint_0000020000',
-    )
-    await executor.run()
-
-
-async def main():
-    recorder = OracleRecorder()
-    await recorder.record('data/arm_state_test*.tfrecord')
-
-
 async def main_master_slave():
     async with SerialStream('/dev/tty.usbserial-11110', baudrate=115200) as ttl_serial, \
             SerialStream('/dev/tty.usbserial-0001', baudrate=115200) as rs485_serial:

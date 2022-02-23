@@ -15,9 +15,6 @@ from env.arm_kinematics_2d import forward
 from env.robot_arm_real_infra import RobotArmRealInfra, open_arm_control
 from motors.futaba.commands import Commands as FutabaCommands
 
-# _IMAGE_SHAPE = (320, 240, 3)  # width, height
-IMAGE_SHAPE = None
-
 
 class _HumanControllerInfra:
     _MOTOR_IDS = [49, 9]  # [root, end effector]
@@ -77,8 +74,8 @@ class OracleRecorder:
     ):
         last_trajectory = None
         async with SerialStream(controller_serial_port_name, baudrate=115200) as ttl_serial, \
-                open_arm_control(serial_port_name, target_update_delta_time, command_delta_time, observations,
-                                 image_shape) as robot_infra:
+                open_arm_control(
+                    serial_port_name, target_update_delta_time, command_delta_time, observations) as robot_infra:
             try:
                 controller_infra = _HumanControllerInfra(robot_infra, ttl_serial)
                 current_xy = (await controller_infra.read_current_xy_and_angles())[0]

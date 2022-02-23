@@ -3,4 +3,3 @@ policy_eval.sequence_length=2
 policy_eval.target_update_delta_time=0.1
 policy_eval.command_delta_time=0.01
 policy_eval.observations=('joint_angles', 'end_effector_pos')
-policy_eval.image_shape=None

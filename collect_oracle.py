@@ -23,15 +23,16 @@ async def collect_oracle(
         target_update_delta_time=0.1,
         command_delta_time=0.01,
         observations: Optional[Sequence] = None,
-        image_shape: Optional[Tuple[float, float]] = None,  # w, h, channel
 ):
-    if image_shape:
-        image_shape = ImageShape(*image_shape)
-
     register(
         id='ScalaArm-v0',
         entry_point=RobotArmEnv,
     )
+    try:
+        image_shape = ImageShape(*gin.query_parameter('apply_crop_and_reshape.image_shape'))
+    except ValueError:
+        image_shape = None
+
     await OracleRecorder.record(
         env_name,
         dataset_path,

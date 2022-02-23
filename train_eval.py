@@ -156,18 +156,18 @@ async def train_eval_with_real_robot(
         strategy,
         env_name='',
         observations=None,
-        image_shape: Optional[Tuple[float, float]] = None,  # w, h, channel
         sequence_length=2,
         target_update_delta_time=0.1,
         **kwargs
 ):
-    if image_shape:
-        image_shape = ImageShape(*image_shape)
-
     register(
         id='ScalaArm-v0',
         entry_point=RobotArmEnv,
     )
+    try:
+        image_shape = ImageShape(*gin.query_parameter('apply_crop_and_reshape.image_shape'))
+    except ValueError:
+        image_shape = None
     env = suite_gym.load(env_name, gym_kwargs={
         'delta_time': target_update_delta_time,
         'observations': observations,

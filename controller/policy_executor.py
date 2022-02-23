@@ -33,8 +33,7 @@ class PolicyExecutor:
         env = HistoryWrapper(env, history_length=sequence_length, tile_first_step_obs=True)
 
         async with open_arm_control(
-                serial_port_name, target_update_delta_time, command_delta_time, observations,
-                image_shape) as robot_infra:
+                serial_port_name, target_update_delta_time, command_delta_time, observations) as robot_infra:
             await env.async_reset(robot_infra)
             time_step = env.reset()
             while True:

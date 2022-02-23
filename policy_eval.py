@@ -24,16 +24,16 @@ async def policy_eval(
         target_update_delta_time=0.1,
         command_delta_time=0.01,
         observations: Optional[Sequence] = None,
-        image_shape: Optional[Tuple[float, float]] = None,  # w, h, channel
 ):
-    if image_shape:
-        image_shape = ImageShape(*image_shape)
-
     register(
         id='ScalaArm-v0',
         entry_point=RobotArmEnv,
     )
     executor = PolicyExecutor(saved_model_path, checkpoint_path)
+    try:
+        image_shape = ImageShape(*gin.query_parameter('apply_crop_and_reshape.image_shape'))
+    except ValueError:
+        image_shape = None
     await executor.run(
         env_name,
         sequence_length,

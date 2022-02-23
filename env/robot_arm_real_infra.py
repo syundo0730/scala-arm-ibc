@@ -9,7 +9,7 @@ import trio
 from trio_serial import AbstractSerialStream, SerialStream
 from trio_util import move_on_when, periodic, RepeatedEvent
 
-from camera.image import ImageShape
+from camera.image import apply_crop_and_reshape
 from camera.video_capture import open_video_capture
 from motors.core.serial_client import SerialClient
 from env.arm_kinematics_2d import inverse, forward
@@ -25,14 +25,12 @@ class RobotArmRealInfra(RobotArmInfra):
     def __init__(self, serial_stream: AbstractSerialStream, video_stream: cv2.VideoCapture,
                  target_update_delta_time: float,
                  command_delta_time: float,
-                 observations: Optional[Sequence],
-                 image_shape: Optional[ImageShape]):
+                 observations: Optional[Sequence]):
         self._serial_client = SerialClient(serial_stream)
         self._video_stream = video_stream
         self._target_update_delta_time = target_update_delta_time
         self._command_delta_time = command_delta_time
         self._observations = observations
-        self._image_shape = image_shape
 
         self._last_target_position = None
         self._target_update_event = RepeatedEvent()
@@ -95,13 +93,11 @@ class RobotArmRealInfra(RobotArmInfra):
             obs['joint_angles'] = joint_angles
         if self._observations is None or 'end_effector_pos' in self._observations:
             obs['end_effector_pos'] = end_effector_point
-        if (self._observations is None or 'rgb' in self._observations) and self._image_shape is not None:
+        if self._observations is None or 'rgb' in self._observations:
             success, frame = self._video_stream.read()
             if not success:
                 raise RuntimeError('video stream not available')
-            resized = cv2.resize(frame, dsize=self._image_shape.wh, interpolation=cv2.INTER_CUBIC)
-            assert resized.shape[2] == 3, 'image should be 3 channel'
-            obs['rgb'] = resized
+            obs['rgb'] = apply_crop_and_reshape(frame)
         return obs
 
     async def run(self):
@@ -131,13 +127,11 @@ class RobotArmRealInfra(RobotArmInfra):
 async def open_arm_control(serial_port_name: str,
                            target_update_delta_time: float,
                            command_delta_time: float,
-                           observations: Optional[Sequence] = None,
-                           image_shape: Optional[ImageShape] = None):
+                           observations: Optional[Sequence] = None):
     async with SerialStream(serial_port_name, baudrate=115200) as rs485_serial, \
             trio.open_nursery() as nursery:
-        with (open_video_capture(0) if image_shape else nullcontext()) as cap:
-            infra = RobotArmRealInfra(
-                rs485_serial, cap, target_update_delta_time, command_delta_time, observations, image_shape)
+        with (open_video_capture(0) if observations and 'rgb' in observations else nullcontext()) as cap:
+            infra = RobotArmRealInfra(rs485_serial, cap, target_update_delta_time, command_delta_time, observations)
             await infra._reset_pid_params()
             try:
                 nursery.start_soon(infra.run)

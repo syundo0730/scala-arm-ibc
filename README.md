@@ -2,13 +2,22 @@
 This project is for reproducing the result of ibc (https://github.com/google-research/ibc) in my hoby scala-arm robot.
 
 # Setup
-```
-git clone git@github.com:syundo0730/scala-arm-ibc.git
-cd scala-arm-ibc
-git submodule update --remote
+```bash
+git clone git@github.com:syundo0730/scala-arm-ibc.git --recursive
 ```
 
-# Execution
+# Workflow
+### collect oracle
+```bash
+./configs/collect_oracle.sh
 ```
-python3 main.py
+
+### train
+```bash
+./configs/scala_arm_pixels/train_pixel_ebm.sh
+```
+
+### execution
+```bash
+./configs/rum_mlp_ebm.sh
 ```

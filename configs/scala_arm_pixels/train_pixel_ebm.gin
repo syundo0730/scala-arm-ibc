@@ -1,0 +1,59 @@
+# coding=utf-8
+# Copyright 2021 The Reach ML Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+train_eval_with_real_robot.env_name='ScalaArm-v0'
+train_eval_with_real_robot.observations=('joint_angles', 'end_effector_pos', 'rgb')
+train_eval_with_real_robot.sequence_length=2
+
+train_eval_simple.root_dir = '/tmp/scala_arm_ibc_logs/conv_mlp_ebm'
+train_eval_simple.dataset_path='data/scala_arm_pixels/scala_arm_pixels*.tfrecord'
+train_eval_simple.loss_type_name = 'ebm' # specifies we are training ebm.
+train_eval_simple.network_name = 'PixelEBM'
+train_eval_simple.batch_size = 128
+train_eval_simple.num_iterations = 100000
+train_eval_simple.replay_capacity = 10000
+train_eval_simple.learning_rate = 1e-3
+train_eval_simple.seed = 0
+train_eval_simple.dataset_eval_fraction = 0.0
+get_normalizers.nested_obs = True
+
+apply_crop_and_reshape.image_shape=(120, 90, 3)
+apply_crop_and_reshape.image_crop=(30, 0, 520, 400)  # x, y, w, h
+
+# Config for sampling actions.
+ImplicitBCAgent.num_counter_examples = 256  # training.
+IbcPolicy.num_action_samples = 2048
+train_eval.uniform_boundary_buffer = 0.05
+
+
+PixelEBM.encoder_network = 'ConvMaxpoolEncoder'
+PixelEBM.value_network = 'DenseResnetValue'
+PixelEBM.target_height = 90
+PixelEBM.target_width = 120
+
+# Value config.
+DenseResnetValue.width = 1024
+DenseResnetValue.num_blocks = 1
+
+# Tell training and test we are doing late fusion.
+ImplicitBCAgent.late_fusion = True
+IbcPolicy.late_fusion = True
+
+# Need to not use langevin samples in agent or policy
+ImplicitBCAgent.add_grad_penalty = False
+ImplicitBCAgent.compute_mse = True
+ImplicitBCAgent.fraction_langevin_samples = 0.0
+IbcPolicy.use_langevin = False
+IbcPolicy.use_dfo = True

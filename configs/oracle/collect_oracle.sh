@@ -2,6 +2,6 @@
 
 python3 collect_oracle.py --alsologtostderr \
   --gin_file=configs/oracle/all_states.gin \
-  --serial_port=/dev/tty.usbserial-0001 \
-  --controller_serial_port=/dev/tty.usbserial-11310 \
-  --dataset_path=data/data_file*.tfrecord
+  --serial_port=/dev/ttyUSB0 \
+  --controller_serial_port=/dev/ttyUSB1 \
+  --dataset_path=data/scala_arm_pixels/scala_arm_pixels*.tfrecord
